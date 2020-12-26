@@ -141,6 +141,11 @@ jobs:
       # - restore_cache:
       #     keys: [frontend-build]
       - run:
+          name: Audit fix for Security - backend
+          command: |
+            cd backend
+            npm audit fix --audit-level=critical --force
+      - run:
           name: Audit for Security - backend
           command: |
             cd backend
