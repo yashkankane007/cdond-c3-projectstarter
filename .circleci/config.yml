@@ -40,15 +40,16 @@ jobs:
       - checkout
       - restore_cache:
           keys: [frontend-build]
-      - run:
-          name: Install modules
-          command: |
-            cd frontend
-            npm install
+      # - run:
+      #     name: Install modules
+      #     command: |
+      #       cd frontend
+      #       npm install
       - run:
           name: Build front-end
           command: |
             cd frontend
+            npm install
             npm run build
       - save_cache:
           paths: [frontend/node_modules]
@@ -61,15 +62,16 @@ jobs:
       - checkout
       - restore_cache:
           keys: [backend-build]
-      - run:
-          name: Install modules
-          command: |
-            cd backend
-            npm install
+      # - run:
+      #     name: Install modules
+      #     command: |
+      #       cd backend
+      #       npm install
       - run:
           name: Back-end build
           command: |
             cd backend
+            npm install
             npm run build
       - save_cache:
           paths: [backend/node_modules]
@@ -82,15 +84,16 @@ jobs:
       - checkout
       - restore_cache:
           keys: [frontend-build]
-      - run:
-          name: Install modules
-          command: |
-            cd frontend
-            npm install
+      # - run:
+      #     name: Install modules
+      #     command: |
+      #       cd frontend
+      #       npm install
       - run:
           name: test front-end
           command: |
             cd frontend
+            npm install
             npm run test
       - save_cache:
           paths: [frontend/node_modules]
@@ -103,15 +106,16 @@ jobs:
       - checkout
       - restore_cache:
           keys: [backend-build]
-      - run:
-          name: Install modules
-          command: |
-            cd backend
-            npm install
+      # - run:
+      #     name: Install modules
+      #     command: |
+      #       cd backend
+      #       npm install
       - run:
           name: Back-end test
           command: |
             cd backend
+            npm install
             npm run test
       - save_cache:
           paths: [backend/node_modules]
@@ -122,37 +126,73 @@ jobs:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-      # - restore_cache:
-      #     keys: [frontend-build]
+      - restore_cache:
+          keys: [frontend-build]
       - run:
           name: Audit for Security - frontend
           command: |
             cd frontend
+            npm install
             npm audit --audit-level=critical
-      # - save_cache:
-      #     paths: [frontend/node_modules]
-      #     key: frontend-build
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: frontend-build
 
   scan-backend:
     docker:
       - image: circleci/node:13.8.0
     steps:
       - checkout
-      # - restore_cache:
-      #     keys: [frontend-build]
-      - run:
-          name: Audit fix for Security - backend
-          command: |
-            cd backend
-            npm audit fix --audit-level=critical --force
+      - restore_cache:
+          keys: [frontend-build]
+      # - run:
+      #     name: Audit fix for Security - backend
+      #     command: |
+      #       cd backend
+      #       npm audit fix --audit-level=critical --force
       - run:
           name: Audit for Security - backend
           command: |
             cd backend
+            npm install
+            npm audit fix --audit-level=critical --force
             npm audit --audit-level=critical
-      # - save_cache:
-      #     paths: [frontend/node_modules]
-      #     key: frontend-build
+      - save_cache:
+          paths: [frontend/node_modules]
+          key: frontend-build
+
+  deploy-infrastructure:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Ensure back-end infrastructure exists
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/backend.yml \
+              --tags project=udapeople \
+              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Ensure front-end infrastructure exist
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/frontend.yml \
+              --tags project=udapeople \
+              --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Add back-end ip to ansible inventory
+          command: |
+            aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --output text >> inventory.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/.circleci/ansible/inventory.txt
+      # Here's where you will add some code to rollback on failure      
 
 
             
@@ -170,11 +210,11 @@ workflows:
           requires: [build-backend]
       - scan-frontend:
           requires: [build-frontend]
-      # - deploy-infrastructure:
-      #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-      #     filters:
-      #       branches:
-      #         only: [test-feature-branch]
+      - deploy-infrastructure:
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [test-feature-branch]
       # - configure-infrastructure:
       #     requires: [deploy-infrastructure]
       # - run-migrations:
