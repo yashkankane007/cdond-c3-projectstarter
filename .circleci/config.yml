@@ -203,10 +203,10 @@ jobs:
       - run:
           name: Add back-end ip to memory
           command: |
-            backend_ip = ${CIRCLE_WORKFLOW_ID:0:7}
+            IP_ADDRESS=${CIRCLE_WORKFLOW_ID:0:7}
             curl -H "Content-Type: text/plain" \
             -H "token: 068ae762-6f33-4caa-8a56-db0c79ffd86d" \
-            --request PUT --data ${backend_ip} https://api.memstash.io/values/backend_ip
+            --request PUT --data ${IP_ADDRESS} https://api.memstash.io/values/backend_ip
       - persist_to_workspace:
           root: ~/
           paths:
