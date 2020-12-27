@@ -12,7 +12,7 @@ commands:
           name: Destroy environments
           when: on_fail
           command: |
-            echo udapeople-frontend-<< parameters.workflow_id >>
+            echo myname-backend-<< parameters.workflow_id >>
             aws cloudformation delete-stack --stack-name udapeople-frontend-<< parameters.workflow_id >>
             aws cloudformation delete-stack --stack-name udapeople-backend-<< parameters.workflow_id >>
 
@@ -200,8 +200,15 @@ jobs:
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --output text >> .circleci/ansible/inventory.txt
             cat .circleci/ansible/inventory.txt
+      - run:
+          name: Add back-end ip to memory
+          command: |
+            backend_ip = ${CIRCLE_WORKFLOW_ID:0:7}
+            curl -H "Content-Type: text/plain" \
+            -H "token: 068ae762-6f33-4caa-8a56-db0c79ffd86d" \
+            --request PUT --data ${backend_ip} https://api.memstash.io/values/backend_ip
       - persist_to_workspace:
-          root: ~/ansible
+          root: ~/
           paths:
             - .circleci/ansible/inventory.txt
       - run:
