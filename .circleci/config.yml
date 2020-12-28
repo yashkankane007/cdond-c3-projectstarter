@@ -176,25 +176,27 @@ jobs:
             yum -y install gzip
       # - attach_workspace:
       #     at: project/.circleci/ansible/
-      - run:
-          name: Ensure back-end infrastructure exists
-          command: |
-            aws cloudformation deploy \
-              --template-file .circleci/files/backend.yml \
-              --tags project=udapeople \
-              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
-      - run:
-          name: Ensure front-end infrastructure exist
-          command: |
-            aws cloudformation deploy \
-              --template-file .circleci/files/frontend.yml \
-              --tags project=udapeople \
-              --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      # - run:
+      #     name: Ensure back-end infrastructure exists
+      #     command: |
+      #       aws cloudformation deploy \
+      #         --template-file .circleci/files/backend.yml \
+      #         --tags project=udapeople \
+      #         --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+      #         --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      # - run:
+      #     name: Ensure front-end infrastructure exist
+      #     command: |
+      #       aws cloudformation deploy \
+      #         --template-file .circleci/files/frontend.yml \
+      #         --tags project=udapeople \
+      #         --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
+      #         --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
       - run:
           name: Add back-end ip to ansible inventory
           command: |
+            pwd
+            echo -e "[web]\n123" > project/.circleci/ansible/inventory.txt
             aws ec2 describe-instances \
             --filters "Name=tag:NameAs,Values=udacity" \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
@@ -208,9 +210,9 @@ jobs:
             -H "token: 068ae762-6f33-4caa-8a56-db0c79ffd86d" \
             --request PUT --data ${IP_ADDRESS} https://api.memstash.io/values/backend_ip
       - persist_to_workspace:
-          root: .circleci/ansible/        
+          root: ~/project/
           paths:
-            - inventory.txt
+            - .circleci/ansible/inventory.txt
       # Here's where you will add some code to rollback on failure
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
@@ -223,7 +225,7 @@ jobs:
       - add_ssh_keys:
           fingerprints: [9a:00:2f:80:41:85:8d:4e:3d:3d:70:bc:dd:54:a4:c3]
       - attach_workspace:
-          at: .circleci/ansible/
+          at: ~/project
       - run:
           name: Install dependencies
           command: |
@@ -235,8 +237,13 @@ jobs:
       - run:
           name: Configure server
           command: |
-            ansible-playbook -i inventory.txt .circleci/ansible/configure-server.yml
+            pwd
+            ls
+            cd .circleci/ansible/
+            ls
+            ansible-playbook -i inventory.txt configure-server.yml
       # Here's where you will add some code to rollback on failure
+      - run: exit 1
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
