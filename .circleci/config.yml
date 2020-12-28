@@ -196,7 +196,7 @@ jobs:
           name: Add back-end ip to ansible inventory
           command: |
             pwd
-            echo -e "[web]\n123" > project/.circleci/ansible/inventory.txt
+            echo -e "[web]\n123" >> .circleci/ansible/inventory.txt
             aws ec2 describe-instances \
             --filters "Name=tag:NameAs,Values=udacity" \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
@@ -210,7 +210,7 @@ jobs:
             -H "token: 068ae762-6f33-4caa-8a56-db0c79ffd86d" \
             --request PUT --data ${IP_ADDRESS} https://api.memstash.io/values/backend_ip
       - persist_to_workspace:
-          root: ~/project/
+          root: ~/project
           paths:
             - .circleci/ansible/inventory.txt
       # Here's where you will add some code to rollback on failure
@@ -225,7 +225,7 @@ jobs:
       - add_ssh_keys:
           fingerprints: [9a:00:2f:80:41:85:8d:4e:3d:3d:70:bc:dd:54:a4:c3]
       - attach_workspace:
-          at: ~/project
+          at: ~/project/
       - run:
           name: Install dependencies
           command: |
