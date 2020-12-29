@@ -204,14 +204,14 @@ jobs:
       - run:
           name: Add back-end ip to memory stash
           command: |
-            IP_ADDRESS=${aws ec2 describe-instances \
+            ADDRESS=$(aws ec2 describe-instances \
             --filters "Name=tag:NameAs,Values=udacity" \
-            --query 'Reservations[*].Instances[*].PublicIpAddress' \
-            --output text}
-            echo IP_ADDRESS
+            --query 'Reservations[*].Instances[*].PublicDnsName' \
+            --output text)
+            echo ADDRESS
             curl -H "Content-Type: text/plain" \
             -H "token: 068ae762-6f33-4caa-8a56-db0c79ffd86d" \
-            --request PUT --data ${IP_ADDRESS} https://api.memstash.io/values/backend_ip
+            --request PUT --data ${ADDRESS} https://api.memstash.io/values/backend_ip
       - persist_to_workspace:
           root: ~/project
           paths:
