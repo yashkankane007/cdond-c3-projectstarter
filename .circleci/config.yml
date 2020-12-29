@@ -26,13 +26,14 @@ commands:
           # Add when this will run
           command: |
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
-            SUCCESS = 1
+            SUCCESS=$(curl -H "token: 9db2fb2e-2626-4bce-aeae-c4ea05a9f1e8" --request GET https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID})
+            echo SUCCESS
             if(( $SUCCESS==1 )); 
             then
-            #  cd ~/project/backend
-            #  npm install
-            #  Add revert code here. You can find this in the Getting Started section.
-              exit 1
+              cd ~/project/backend
+              npm install
+              echo "Reverting Migration..."
+              npm run migrations:revert
             fi
             
 jobs:
@@ -176,27 +177,25 @@ jobs:
             yum -y install gzip
       # - attach_workspace:
       #     at: project/.circleci/ansible/
-      # - run:
-      #     name: Ensure back-end infrastructure exists
-      #     command: |
-      #       aws cloudformation deploy \
-      #         --template-file .circleci/files/backend.yml \
-      #         --tags project=udapeople \
-      #         --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
-      #         --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
-      # - run:
-      #     name: Ensure front-end infrastructure exist
-      #     command: |
-      #       aws cloudformation deploy \
-      #         --template-file .circleci/files/frontend.yml \
-      #         --tags project=udapeople \
-      #         --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
-      #         --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Ensure back-end infrastructure exists
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/backend.yml \
+              --tags project=udapeople \
+              --stack-name "udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
+      - run:
+          name: Ensure front-end infrastructure exist
+          command: |
+            aws cloudformation deploy \
+              --template-file .circleci/files/frontend.yml \
+              --tags project=udapeople \
+              --stack-name "udapeople-frontend-${CIRCLE_WORKFLOW_ID:0:7}" \
+              --parameter-overrides ID="${CIRCLE_WORKFLOW_ID:0:7}"
       - run:
           name: Add back-end ip to ansible inventory
           command: |
-            pwd
-            echo -e "[web]\n123" >> .circleci/ansible/inventory.txt
             aws ec2 describe-instances \
             --filters "Name=tag:NameAs,Values=udacity" \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
@@ -205,7 +204,11 @@ jobs:
       - run:
           name: Add back-end ip to memory stash
           command: |
-            IP_ADDRESS=${CIRCLE_WORKFLOW_ID:0:7}
+            IP_ADDRESS=${aws ec2 describe-instances \
+            --filters "Name=tag:NameAs,Values=udacity" \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --output text}
+            echo IP_ADDRESS
             curl -H "Content-Type: text/plain" \
             -H "token: 068ae762-6f33-4caa-8a56-db0c79ffd86d" \
             --request PUT --data ${IP_ADDRESS} https://api.memstash.io/values/backend_ip
@@ -231,21 +234,49 @@ jobs:
           command: |
             apk add --update ansible
       - run:
-          name: Install AWS-CLI for destroy-enviroment
+          name: Install AWS-CLI for destroy-enviroment task
           command: |
             pip install awscli
       - run:
           name: Configure server
           command: |
             cd .circleci/ansible/
-            cat inventory.txt
             ansible-playbook -i inventory.txt configure-server.yml
       # Here's where you will add some code to rollback on failure
-      - run: exit 1
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
-            
+  run-migrations:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - checkout
+      - run:
+          name: Install AWS-CLI for destroy-enviroment task
+          command: |
+            sudo apt-get -y install python3
+            pip install awscli
+      - run:
+          name: Run migrations
+          command: |
+            cd backend
+            npm install
+            npm run migrations > migration_output.txt
+      - run:
+          name: Send migration results to memstash
+          command: |
+            cd backend
+            cat migration_output.txt
+            if grep "has been executed successfully" migrations_results.txt
+            then
+              curl -H "Content-Type: text/plain" -H "token: 9db2fb2e-2626-4bce-aeae-c4ea05a9f1e8" --request PUT --data 1 https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
+            else
+              curl -H "Content-Type: text/plain" -H "token: 9db2fb2e-2626-4bce-aeae-c4ea05a9f1e8" --request PUT --data 2 https://api.memstash.io/values/migration_${CIRCLE_WORKFLOW_ID}
+            fi
+     # Here's where you will add some code to rollback on failure
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations
 
 workflows:
   default:
@@ -267,8 +298,8 @@ workflows:
               only: [master]
       - configure-infrastructure:
           requires: [deploy-infrastructure]
-      # - run-migrations:
-      #     requires: [configure-infrastructure]
+      - run-migrations:
+          requires: [configure-infrastructure]
       # - deploy-frontend:
       #     requires: [run-migrations]
       # - deploy-backend:
