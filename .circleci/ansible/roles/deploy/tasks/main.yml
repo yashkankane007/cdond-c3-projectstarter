@@ -1,0 +1,25 @@
+---
+- name: Place backend code in Server
+  become: true
+  copy:
+    src: /root/project/backend
+    dest: /home/ubuntu/
+
+- name: Install dependencies
+  shell: |
+    cd /home/ubuntu/backend    
+    npm install
+
+- name: Build Backend
+  become: true
+  shell: |
+    cd /home/ubuntu/backend
+    npm run build
+
+- name: Run server
+  become: true
+  shell: |
+    ls
+    cd /home/ubuntu/backend/dist
+    ls
+    pm2 start npm -- run start
