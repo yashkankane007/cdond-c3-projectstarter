@@ -1,21 +1,17 @@
 ---
-- name: Check files
-  shell: |
-    cd /root/project/backend/dist
-    ls
-
 - name: Place backend code in Server
   become: true
-  copy:
-    src: /root/project/backend/dist
+  unarchive:
+    src: /root/project/backend/backend.tar.gz
     dest: /home/ubuntu/
-    force: yes
+    owner: ubuntu
 
-- name: Place packageJson in Server
+- name: Place package file in Server
   become: true
   copy:
     src: /root/project/backend/package.json
     dest: /home/ubuntu/
+    owner: ubuntu
 
 - name: Install dependencies
   shell: |
@@ -32,7 +28,6 @@
 - name: Run server
   become: true
   shell: |
-    ls
-    cd /home/ubuntu/dist
+    cd /home/ubuntu
     ls
     pm2 start npm -- run start

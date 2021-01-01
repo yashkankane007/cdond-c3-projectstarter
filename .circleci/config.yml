@@ -81,10 +81,16 @@ jobs:
             cd backend
             npm install
             npm run build
+      - run:
+          name: Copy compiled backend for future use in ansible
+          command: |
+            cd backend
+            tar -zcvf backend.tar.gz dist
+            ls
       - persist_to_workspace:
           root: ~/project
           paths:
-            - backend/dist
+            - backend/backend.tar.gz
             - backend/package.json
       - save_cache:
           paths: [backend/node_modules]
@@ -349,6 +355,12 @@ jobs:
             apk add curl
             apk add openssh-client
             apk add --update npm
+            apk add --update tar
+      - run:
+          name: check tar file
+          command: |
+            cd backend
+            ls
       - run:
           name: Deploy backend
           command: |
