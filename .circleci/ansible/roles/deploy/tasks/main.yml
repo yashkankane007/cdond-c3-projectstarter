@@ -16,7 +16,6 @@
 - name: Install dependencies
   shell: |
     cd /home/ubuntu
-    ls
     npm install
 
 # - name: Build Backend
@@ -30,4 +29,4 @@
   shell: |
     cd /home/ubuntu
     ls
-    pm2 start npm -- run start
+    pm2 start npm -- run "start:prod"

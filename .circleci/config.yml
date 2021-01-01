@@ -79,6 +79,7 @@ jobs:
           name: Back-end build
           command: |
             cd backend
+            ls
             npm install
             npm run build
       - run:
