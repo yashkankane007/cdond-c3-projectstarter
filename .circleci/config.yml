@@ -81,6 +81,11 @@ jobs:
             cd backend
             npm install
             npm run build
+      - persist_to_workspace:
+          root: ~/project
+          paths:
+            - backend/dist
+            - backend/package.json
       - save_cache:
           paths: [backend/node_modules]
           key: backend-build
@@ -343,6 +348,7 @@ jobs:
             pip install awscli
             apk add curl
             apk add openssh-client
+            apk add --update npm
       - run:
           name: Deploy backend
           command: |
@@ -356,6 +362,7 @@ jobs:
             echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> "backend/.env"
             echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> "backend/.env"
             cd .circleci/ansible/
+            export ANSIBLE_HOST_KEY_CHECKING=False
             ansible-playbook -i inventory.txt deploy-backend.yml
       # Here's where you will add some code to rollback on failure
       - destroy-environment:
@@ -366,7 +373,7 @@ workflows:
   default:
     jobs:
       # - build-frontend
-      # - build-backend
+      - build-backend
       # - test-frontend:
       #     requires: [build-frontend]
       # - test-backend:
@@ -377,6 +384,7 @@ workflows:
       #     requires: [build-frontend]
       - deploy-infrastructure:
           # requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          requires: [build-backend]
           filters:
             branches:
               only: [master]
