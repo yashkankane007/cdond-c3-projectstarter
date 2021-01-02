@@ -2,31 +2,31 @@
 - name: Place backend code in Server
   become: true
   unarchive:
-    src: /root/project/backend/backend.tar.gz
+    src: /root/project/backend.tar.gz
     dest: /home/ubuntu/
     owner: ubuntu
 
-- name: Place package file in Server
-  become: true
-  copy:
-    src: /root/project/backend/package.json
-    dest: /home/ubuntu/
-    owner: ubuntu
+# - name: Place package file in Server
+#   become: true
+#   copy:
+#     src: /root/project/backend/package.json
+#     dest: /home/ubuntu/
+#     owner: ubuntu
 
 - name: Install dependencies
   shell: |
-    cd /home/ubuntu
+    cd /home/ubuntu/backend
     npm install
 
-# - name: Build Backend
-#   become: true
-#   shell: |
-#     cd /home/ubuntu/backend
-#     npm run build
+- name: Build Backend
+  become: true
+  shell: |
+    cd /home/ubuntu/backend
+    npm run build
 
 - name: Run server
   become: true
   shell: |
     cd /home/ubuntu
     ls
-    pm2 start npm -- run "start:prod"
+    pm2 start npm -- run start
