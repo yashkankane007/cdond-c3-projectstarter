@@ -451,7 +451,6 @@ jobs:
             OldWorkflowID=$(curl -H "token: 9db2fb2e-2626-4bce-aeae-c4ea05a9f1e8" --request GET https://api.memstash.io/values/OldWorkflowID)
             STACKS=$(aws cloudformation list-stacks --query "StackSummaries[*].StackName" --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
             echo ${OldWorkflowID}
-            echo ${STACKS}
             echo "${STACKS[@]}"
             if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
             then
