@@ -419,15 +419,16 @@ jobs:
       - image: amazon/aws-cli
     steps:
       - checkout
-      # - run:
-      #     name: Install dependencies
-      #     command: |
-      #       sudo apt-get -y install npm
+      - run:
+          name: Install dependencies
+          command: |
+            sudo apt-get -y install npm
+            npm -v
       - run:
           name: Update cloudfront distribution
           command: |
-            aws cloudformation deploy \
-              --stack-name udapeople-cloudfront-${CIRCLE_WORKFLOW_ID:0:7} \
+            aws cloudformation update-stack \
+              --stack-name cloudfront \
               --template-file .circleci/files/cloudfront.yml \
               --tags project=udapeople \
               --parameter-overrides WorkflowID="${CIRCLE_WORKFLOW_ID:0:7}"
@@ -436,6 +437,24 @@ jobs:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
       - revert-migrations
 
+  # cleanup:
+  #   docker:
+  #     - image: amazon/aws-cli
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Get old stack workflow id
+  #         command: |
+  #           # your code here
+  #           export OldWorkflowID="the id here"
+  #           export STACKS=[] #put the list of stacks here
+  #     - run:
+  #         name: Remove old stacks and files
+  #         command: |
+  #           if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
+  #           then
+  #             # your code here
+  #           fi
 
 workflows:
   default:
