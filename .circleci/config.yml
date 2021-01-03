@@ -428,11 +428,8 @@ jobs:
           name: Update cloudfront distribution
           command: |
             OldWorkflowID=$(aws cloudformation list-exports --query "Exports[?Name=='WorkflowID'].Value" --no-paginate --output text)
-            STACKS=($(aws cloudformation list-stacks --query "StackSummaries[*].StackName" --stack-status-filter CREATE_COMPLETE --no-paginate --output text))
-
             curl -H "Content-Type: text/plain" -H "token: 9db2fb2e-2626-4bce-aeae-c4ea05a9f1e8" --request PUT --data ${OldWorkflowID} https://api.memstash.io/values/OldWorkflowID
-            curl -H "Content-Type: text/plain" -H "token: 9db2fb2e-2626-4bce-aeae-c4ea05a9f1e8" --request PUT --data ${STACKS} https://api.memstash.io/values/STACKS
-
+            
             aws cloudformation update-stack \
               --stack-name cloudfront \
               --template-body file://.circleci/files/cloudfront.yml \
@@ -452,10 +449,10 @@ jobs:
           name: Remove old stacks and files
           command: |
             OldWorkflowID=$(curl -H "token: 9db2fb2e-2626-4bce-aeae-c4ea05a9f1e8" --request GET https://api.memstash.io/values/OldWorkflowID)
-            STACKS=$(curl -H "token: 9db2fb2e-2626-4bce-aeae-c4ea05a9f1e8" --request GET https://api.memstash.io/values/STACKS)
+            STACKS=$(aws cloudformation list-stacks --query "StackSummaries[*].StackName" --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
             echo ${OldWorkflowID}
-            echo "stack"
-            echo ${STACKS[@]}
+            echo ${STACKS}
+            echo "${STACKS[@]}"
             if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
             then
               echo "Deleting Old Resources"
@@ -463,6 +460,7 @@ jobs:
               aws cloudformation delete-stack --stack-name udapeople-frontend-${OldWorkflowID}
               aws cloudformation delete-stack --stack-name udapeople-backend-${OldWorkflowID} 
             fi
+            echo "Done!"
 
 workflows:
   default:
