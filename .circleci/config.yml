@@ -422,7 +422,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            yum -y install npm
+            apk add --update npm
             npm -v
       - run:
           name: Update cloudfront distribution
