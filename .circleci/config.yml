@@ -422,6 +422,7 @@ jobs:
       - run:
           name: Install dependencies
           command: |
+            sudo apt-get -y update
             sudo apt-get install awscli
       - run:
           name: Update cloudfront distribution
