@@ -48,11 +48,6 @@ jobs:
       - checkout
       - restore_cache:
           keys: [frontend-build]
-      # - run:
-      #     name: Install modules
-      #     command: |
-      #       cd frontend
-      #       npm install
       - run:
           name: Build front-end
           command: |
@@ -70,11 +65,6 @@ jobs:
       - checkout
       - restore_cache:
           keys: [backend-build]
-      # - run:
-      #     name: Install modules
-      #     command: |
-      #       cd backend
-      #       npm install
       - run:
           name: Back-end build
           command: |
@@ -83,7 +73,7 @@ jobs:
             npm install
             npm run build
       - run:
-          name: Copy compiled backend for future use in ansible
+          name: Archive artifact for ansible
           command: |
             tar -zcvf backend.tar.gz backend
             ls
@@ -102,11 +92,6 @@ jobs:
       - checkout
       - restore_cache:
           keys: [frontend-build]
-      # - run:
-      #     name: Install modules
-      #     command: |
-      #       cd frontend
-      #       npm install
       - run:
           name: test front-end
           command: |
@@ -124,11 +109,6 @@ jobs:
       - checkout
       - restore_cache:
           keys: [backend-build]
-      # - run:
-      #     name: Install modules
-      #     command: |
-      #       cd backend
-      #       npm install
       - run:
           name: Back-end test
           command: |
@@ -163,11 +143,6 @@ jobs:
       - checkout
       - restore_cache:
           keys: [frontend-build]
-      # - run:
-      #     name: Audit fix for Security - backend
-      #     command: |
-      #       cd backend
-      #       npm audit fix --audit-level=critical --force
       - run:
           name: Audit for Security - backend
           command: |
@@ -189,8 +164,6 @@ jobs:
           command: |
             yum -y install tar
             yum -y install gzip
-      # - attach_workspace:
-      #     at: project/.circleci/ansible/
       - run:
           name: Ensure back-end infrastructure exists
           command: |
@@ -216,13 +189,13 @@ jobs:
             --output text >> .circleci/ansible/inventory.txt
             cat .circleci/ansible/inventory.txt
       - run:
-          name: Add back-end ip to memory stash
+          name: Add back-end ip to memory stash for Front-end
           command: |
             ADDRESS=$(aws ec2 describe-instances \
             --filters "Name=tag:NameAs,Values=udacity" \
             --query 'Reservations[*].Instances[*].PublicIpAddress' \
             --output text)
-            echo ADDRESS
+            echo ${ADDRESS}
             curl -H "Content-Type: text/plain" \
             -H "token: 9db2fb2e-2626-4bce-aeae-c4ea05a9f1e8" \
             --request PUT --data ${ADDRESS} https://api.memstash.io/values/backend_IP
@@ -428,7 +401,8 @@ jobs:
           command: |
             OldWorkflowID=$(aws cloudformation list-exports --query "Exports[?Name=='WorkflowID'].Value" --no-paginate --output text)
             curl -H "Content-Type: text/plain" -H "token: 9db2fb2e-2626-4bce-aeae-c4ea05a9f1e8" --request PUT --data ${OldWorkflowID} https://api.memstash.io/values/OldWorkflowID
-            
+             
+            echo "update WorkflowID in already existing cloudfront distribution"
             aws cloudformation update-stack \
               --stack-name cloudfront \
               --template-body file://.circleci/files/cloudfront.yml \
@@ -451,7 +425,6 @@ jobs:
             STACKS=$(aws cloudformation list-stacks --query "StackSummaries[*].StackName" --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
             echo ${OldWorkflowID}
             echo ${STACKS}
-            echo "${STACKS[@]}"
             if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
             then
               echo "Deleting Old Resources"
